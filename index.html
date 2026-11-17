@@ -63,11 +63,10 @@ label.lab{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:upp
   color:#fff3d6;text-shadow:0 0 18px rgba(255,201,94,.55),0 0 2px #ffd88a}
 .logo span{display:block;color:var(--lamp)}
 .tagline{color:var(--muted);font-weight:700}
-.cast{display:flex;gap:10px;overflow-x:auto;padding:16px 2px 6px;scroll-snap-type:x mandatory;width:100%;scrollbar-width:none}
-.cast::-webkit-scrollbar{display:none}
-.cast figure{margin:0;flex:0 0 112px;scroll-snap-align:start;display:flex;flex-direction:column;gap:6px;align-items:center}
-.cast img{width:112px;height:150px;object-fit:cover;object-position:50% 18%;border-radius:16px;border:1px solid var(--line);box-shadow:0 8px 20px rgba(0,0,0,.35)}
-.cast figcaption{font-size:12px;font-weight:800;color:var(--muted)}
+.cast{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding:16px 2px 6px;width:100%;max-width:500px;margin:0 auto}
+.cast figure{margin:0;display:flex;flex-direction:column;gap:6px;align-items:center;min-width:0}
+.cast img{width:100%;aspect-ratio:112/150;height:auto;object-fit:cover;object-position:50% 18%;border-radius:16px;border:1px solid var(--line);box-shadow:0 8px 20px rgba(0,0,0,.35)}
+.cast figcaption{font-size:12px;text-align:center;line-height:1.2;font-weight:800;color:var(--muted)}
 .homegrid{display:grid;grid-template-columns:1fr;gap:14px;margin-top:10px}
 .or{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.1em}
 .or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
@@ -141,6 +140,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .chk{display:flex;align-items:center;gap:10px;font-weight:700;cursor:pointer}
 .chk input{width:20px;height:20px;accent-color:var(--lamp)}
 .rolechips{display:flex;flex-wrap:wrap;gap:6px}
+.rchip.off{text-decoration:line-through;opacity:.55}
 .rchip{font:inherit;font-weight:800;font-size:13px;padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer}
 .rchip.on{background:rgba(255,201,94,.18);border-color:var(--lamp);color:#ffe2a6}
 .rchip.fixed{cursor:default;opacity:.85}
@@ -268,7 +268,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
   <section id="sHome">
     <div class="hero">
       <div class="logo">Город<span>засыпает</span></div>
-      <p class="tagline">Мафия онлайн · 10–15 игроков · пустые места занимают боты</p>
+      <p class="tagline">Мафия онлайн · 4–15 игроков · можно с ботами или без</p>
       <div class="cast" id="cast"></div>
     </div>
     <div class="homegrid">
@@ -293,6 +293,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
       <div class="panel stack small">
         <h3>Кто в городе</h3>
         <p class="muted">Дон и 2 мафиози, маньяк, комиссар, сержант, врач. Остальные — мирные жители.</p>
+        <p class="muted">Сын врача сначала мирный. Если ночью к нему придёт мафия — станет мафиози, маньяк — маньяком, комиссар — генералом.</p>
         <p class="muted">К кому ночью пришёл врач или комиссар, того этой ночью убить нельзя. Если комиссар погибнет, его место займёт сержант.</p>
       </div>
     </div>
@@ -377,16 +378,18 @@ function hHello(tk,name){tk=clean(tk,24);if(!tk)return;name=clean(name,16)||'И�
   p.name=name;p.online=true;const i=seatOf(tk);if(i>=0)H.seats[i].on=true;HK.change();}
 function hBye(tk){const p=H.players.get(tk);if(!p)return;p.online=false;const i=seatOf(tk);
   if(i>=0)H.seats[i].on=false;else if(H.ph==='lobby')H.players.delete(tk);HK.change();}
-const mafN=n=>n>=10?3:2;
-const optN=()=>(H.roles.man?1:0)+(H.roles.ser?1:0)+(H.roles.doc?1:0)+(H.roles.son?1:0);
-const specials=n=>mafN(n)+1+optN();
-const minTotal=()=>2+1+optN()+2;
+const mafN=n=>n>=10?3:n>=7?2:1;
+const optN=(r=H.roles)=>(r.man?1:0)+(r.ser?1:0)+(r.doc?1:0)+(r.son?1:0);
+function effRoles(n){const r={...H.roles},drop=[];for(const k of ['son','ser','man','doc']){if(n>=mafN(n)+1+optN(r)+1)break;if(r[k]){r[k]=0;drop.push(k);}}return{r,drop};}
+const specials=n=>mafN(n)+1+optN(effRoles(n).r);
+const minTotal=()=>{let n=4;while(n<mafN(n)+1+optN()+1)n++;return n;};
+const MINP=4;
 const humansN=()=>Math.min(15,lobbyList().length);
-function fixBots(){const h=humansN();if(H.botsAuto)H.bots=Math.max(0,10-h);H.bots=Math.max(Math.max(0,minTotal()-h),Math.min(15-h,H.bots));}
+function fixBots(){const h=humansN();if(H.botsAuto)H.bots=Math.max(0,10-h);H.bots=Math.max(Math.max(0,MINP-h),Math.min(15-h,H.bots));}
 const totalN=()=>{fixBots();return humansN()+H.bots;};
 function hBots(d){if(H.ph!=='lobby')return;fixBots();H.botsAuto=false;H.bots+=d;fixBots();HK.change();}
 function hRole(r){if(H.ph!=='lobby'||!(r in H.roles))return;H.roles[r]=H.roles[r]?0:1;fixBots();HK.change();}
-function rolesText(n){const r=H.roles,m=mafN(n);const parts=[r.don?`Дон и ${m-1} мафиози`:`${m} мафиози`];if(r.man)parts.push('маньяк');parts.push('комиссар');if(r.ser)parts.push('сержант');if(r.doc)parts.push('врач');if(r.son)parts.push('сын врача');
+function rolesText(n){const r=effRoles(n).r,m=mafN(n);const parts=[r.don?(m>1?`Дон и ${m-1} мафиози`:'Дон (один, без мафиози)'):`${m} мафиози`];if(r.man)parts.push('маньяк');parts.push('комиссар');if(r.ser)parts.push('сержант');if(r.doc)parts.push('врач');if(r.son)parts.push('сын врача');
   return parts.join(', ')+` и ${n-specials(n)} мирных`;}
 function addLog(t){H.log.push(t);if(H.log.length>14)H.log.shift();post({sys:1,x:t,c:'all'});}
 const alive=()=>H.seats.map((s,i)=>i).filter(i=>H.seats[i].alive);
@@ -408,7 +411,7 @@ function hStart(){if(H.ph!=='lobby')return;
   const names=shuffle(BOT_NAMES.filter(x=>!used.has(x.toLowerCase())));let b=0;
   while(seats.length<n){const nm=names[b]||('Бот '+(b+1));b++;seats.push({tk:'',name:nm,bot:true,alive:true,on:true});}
   shuffle(seats);
-  const mf=Array(mafN(n)).fill('maf');if(H.roles.don)mf[0]='don';const rs=[...mf,'kom'];if(H.roles.man)rs.push('man');if(H.roles.ser)rs.push('ser');if(H.roles.doc)rs.push('doc');if(H.roles.son)rs.push('son');
+  const ER=effRoles(n).r;const mf=Array(mafN(n)).fill('maf');if(ER.don)mf[0]='don';const rs=[...mf,'kom'];if(ER.man)rs.push('man');if(ER.ser)rs.push('ser');if(ER.doc)rs.push('doc');if(ER.son)rs.push('son');
   const roles=shuffle([...rs,...Array(n-rs.length).fill('cit')]);
   seats.forEach((s,i)=>s.role=roles[i]);
   Object.assign(H,{gid:Math.random().toString(36).slice(2,8),acc:-1,verd:{},seats,day:0,log:[],chat:[],ck:{},gk:{},dk:{},lastHeal:-1,promoted:false,w:'',
@@ -583,7 +586,7 @@ function botVote(i){const S=H.seats,al=alive().filter(j=>j!==i),lead=leader();
 function viewFor(tk){const i=H.seats.length?seatOf(tk):-1;
   const v={t:'state',gid:H.gid,ph:H.ph,q:H.q,e:Math.max(0,H.endAt-Date.now()),dy:H.day||0,host:tk===H.hostTk?1:0,me:i};
   const me_=H.players.get(tk);v.pid=me_?me_.pid:'';
-  if(H.ph==='lobby'){v.sz=totalN();v.bots=H.bots;v.roles={...H.roles};v.minT=minTotal();v.rtext=rolesText(v.sz);v.lobby=lobbyList().map(p=>({n:p.name,h:p.tk===H.hostTk?1:0,m:p.tk===tk?1:0}));return v;}
+  if(H.ph==='lobby'){v.sz=totalN();v.bots=H.bots;v.roles={...H.roles};v.minT=minTotal();v.mf=mafN(v.sz);v.drop=effRoles(v.sz).drop;v.rtext=rolesText(v.sz);v.lobby=lobbyList().map(p=>({n:p.name,h:p.tk===H.hostTk?1:0,m:p.tk===tk?1:0}));return v;}
   const end=H.ph==='end';
   v.seats=H.seats.map(s=>({n:s.name,b:s.bot?1:0,a:s.alive?1:0,on:(s.bot||s.on)?1:0,r:(!s.alive||end)?s.role:''}));
   if(H.ph==='last'||H.ph==='trial')v.acc=H.acc;
@@ -969,10 +972,11 @@ function renderLobby(){const L=V.lobby||[];
   let hh='';
   if(V.host)hh=`<div class="row" style="justify-content:space-between"><div><h3>Ты ведущий</h3><p class="muted small">Ход игры идёт на твоём устройстве. Не закрывай вкладку до конца партии.</p></div></div>
       <div class="row" style="justify-content:space-between"><span class="muted">Ботов в игре</span><div class="stepper"><button class="btn alt" data-a="minus" aria-label="Меньше ботов">−</button><span class="val">${bots}</span><button class="btn alt" data-a="plus" aria-label="Больше ботов">+</button></div></div>
+      ${bots>0&&humans>=4?`<button class="btn alt wide" data-a="nobots">Играть без ботов</button>`:''}
       <div class="stack" style="gap:6px"><span class="lab">Роли в партии</span>
-        <div class="rolechips"><span class="rchip on fixed">Мафия ×${size>=10?3:2}</span><span class="rchip on fixed">Комиссар</span>
-        ${[['don','Дон'],['man','Маньяк'],['ser','Сержант'],['doc','Врач'],['son','Сын врача']].map(([r,n])=>`<button type="button" class="rchip ${V.roles&&V.roles[r]?'on':''}" data-a="role" data-r="${r}" aria-pressed="${V.roles&&V.roles[r]?'true':'false'}">${n}</button>`).join('')}</div>
-        <p class="muted small">${esc(V.rtext||'')}. Всего за столом: ${size} (людей ${humans}, ботов ${bots}).${bots===Math.max(0,(V.minT||0)-humans)&&bots>0?' Меньше ботов нельзя: с такими ролями нужно минимум '+V.minT+' игроков.':''}</p></div>
+        <div class="rolechips"><span class="rchip on fixed">Мафия ×${V.mf||2}</span><span class="rchip on fixed">Комиссар</span>
+        ${[['don','Дон'],['man','Маньяк'],['ser','Сержант'],['doc','Врач'],['son','Сын врача']].map(([r,n])=>`<button type="button" class="rchip ${V.roles&&V.roles[r]?'on':''} ${V.drop&&V.drop.includes(r)?'off':''}" data-a="role" data-r="${r}" aria-pressed="${V.roles&&V.roles[r]?'true':'false'}">${n}</button>`).join('')}</div>
+        <p class="muted small">${esc(V.rtext||'')}. Всего за столом: ${size} (людей ${humans}, ботов ${bots}).${(V.drop&&V.drop.length)?' Мест мало, поэтому в этой партии не будет: '+V.drop.map(r=>({son:'сын врача',ser:'сержант',man:'маньяк',doc:'врач'})[r]).join(', ')+'. Добавь ботов, чтобы вернуть эти роли.':''}${humans+bots<=4&&bots>0?' Меньше 4 игроков за столом быть не может.':''}</p></div>
       ${online?`<label class="chk"><input type="checkbox" id="openTbl" ${tableOpen?'checked':''}> Показывать стол на главной странице</label>`:''}
       <button class="btn wide" data-a="start">Старт${bots?` · ботов: ${bots}`:''}</button>`;
   else hh=`<h3>Ждём ведущего</h3><p class="muted">Когда ведущий нажмёт «Старт», игра начнётся.${bots?` Ботов в игре: ${bots}.`:''}</p><p class="muted small">Роли: ${esc(V.rtext||'')}.</p>`;
@@ -1100,7 +1104,7 @@ document.addEventListener('click',async e=>{
   const sg=e.target.closest('#seg button');if(sg){mode=sg.dataset.mode;render();return;}
   if(e.target.closest('#mePill')&&V&&V.p){const p=V.p;queueOv({img:myRoleImg(p),kicker:'Твоя роль',title:myRoleName(p),body:ROLES[p.r].d,btn:'Закрыть'});return;}
   const a=e.target.closest('[data-a]');if(!a)return;const A=a.dataset.a;
-  if(A==='plus'&&isHost)hBots(1);if(A==='minus'&&isHost)hBots(-1);if(A==='role'&&isHost)hRole(a.dataset.r);
+  if(A==='plus'&&isHost)hBots(1);if(A==='nobots'&&isHost)hBots(-99);if(A==='minus'&&isHost)hBots(-1);if(A==='role'&&isHost)hRole(a.dataset.r);
   if(A==='confirm'&&V&&V.p&&pend&&pend.q===V.q){const{k,s}=pend;if(!canTarget(s,k))return;
     if(k==='kill')V.p.pk=s;else if(k==='check')V.p.pc=s;else if(k==='heal')V.p.ph=s;
     pend=null;playAction(k,V.p.r);render();act({t:'act',k,q:V.q,s});return;}

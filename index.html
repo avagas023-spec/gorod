@@ -349,7 +349,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 <script>
 /*ENGINE START*/
 const ROLES={
-  don:{n:'Дон',s:'дон',team:'m',img:'don',d:'Глава мафии. Когда мафия выбирает жертву, решает твой голос. Каждую ночь можешь проверить одного игрока: комиссар он или нет.'},
+  don:{n:'Дон',s:'дон',team:'m',img:'don',d:'Глава мафии. Когда мафия выбирает жертву, решает твой голос.'},
   maf:{n:'Мафиози',s:'мафиози',team:'m',img:'maf',d:'Ночью вместе с семьёй выбираешь жертву. Днём притворяйся мирным жителем.'},
   man:{n:'Маньяк',s:'маньяк',team:'x',img:'man',d:'Играешь сам за себя. Каждую ночь выбираешь жертву. Побеждаешь, если останешься один на один.'},
   kom:{n:'Комиссар',s:'комиссар',team:'t',img:'kom',d:'Каждую ночь приходишь к одному игроку и узнаёшь, кто он: мафия, маньяк или мирный. Того, к кому ты пришёл, этой ночью убить нельзя.'},
@@ -431,7 +431,6 @@ function doAct(i,k,q,t){const S=H.seats;if(q!==H.q||!S[i]||!S[i].alive)return;t=
       HK.change();}return;}
   if(H.ph!=='night'||!S[t]||!S[t].alive)return;const r=S[i].role,N=H.night;
   if(k==='kill'&&team(i)==='m'&&team(t)!=='m')N.mv[i]=t;
-  else if(k==='check'&&r==='don'&&team(t)!=='m'&&!(t in H.dk))N.dk=t;
   else if(k==='kill'&&r==='man'&&t!==i)N.mk=t;
   else if(k==='kill'&&r==='sman'&&t!==i)N.sk=t;
   else if(k==='check'&&r==='gen'&&t!==i&&!(t in H.gk))N.gk=t;
@@ -503,7 +502,7 @@ function hToLobby(){if(H.ph!=='end')return;for(const [tk,p] of H.players)if(!p.o
 function needs(i){const S=H.seats,N=H.night,r=S[i].role;if(!S[i].alive||(!S[i].bot&&!S[i].on))return false;
   const al=alive(),has=f=>al.some(f),dn=roleAlive('don');
   const mafT=()=>has(j=>team(j)!=='m'),anyT=()=>has(j=>j!==i);
-  if(r==='don')return(N.mv[i]==null&&mafT())||(N.dk==null&&has(j=>team(j)!=='m'&&!(j in H.dk)));
+  if(r==='don')return N.mv[i]==null&&mafT();
   if(team(i)==='m')return N.mv[i]==null&&mafT()&&!(dn>=0&&N.mv[dn]!=null);
   if(r==='man')return N.mk==null&&anyT();if(r==='sman')return N.sk==null&&anyT();
   if(r==='gen')return N.gk==null&&has(j=>j!==i&&!(j in H.gk));
@@ -560,7 +559,7 @@ function runPlan(p){const S=H.seats,i=p.seat,s=S[i];if(!s.alive)return;const al=
     if(team(i)==='m'){const town=al.filter(j=>team(j)!=='m');const others=Object.keys(N.mv).filter(k=>+k!==i).map(k=>N.mv[k]).filter(t=>S[t].alive);
       let t=(others.length&&Math.random()<.7)?pick(others):(cl!=null&&S[cl].alive&&team(cl)!=='m'&&Math.random()<.65)?cl:pick(town);
       if(t!=null){doAct(i,'kill',H.q,t);if(Math.random()<.5)say(i,`Предлагаю ${S[t].name}.`,'maf');}
-      if(r==='don'){const c=town.filter(j=>!(j in H.dk));if(c.length)doAct(i,'check',H.q,cl!=null&&c.includes(cl)&&Math.random()<.6?cl:pick(c));}}
+}
     if(r==='man'||r==='sman')doAct(i,'kill',H.q,(cl!=null&&cl!==i&&S[cl].alive&&Math.random()<.5)?cl:pick(al));
     if(r==='doc'){const c=alive().filter(j=>j!==H.lastHeal);if(c.length)doAct(i,'heal',H.q,(cl!=null&&S[cl].alive&&cl!==H.lastHeal&&Math.random()<.6)?cl:pick(c));}
     if(r==='gen'){const c=al.filter(j=>!(j in H.gk));if(c.length)doAct(i,'check',H.q,Math.random()<.5?bestOf(c):pick(c));}
@@ -998,7 +997,7 @@ function setHTML(sel,h){const e=$(sel);if(e.dataset.k!==h){e.innerHTML=h;e.datas
 const MOON='<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#ffe9b0" d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>';
 const SUN='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5" fill="#ffc95e"/><g stroke="#ffc95e" stroke-width="2" stroke-linecap="round"><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></g></svg>';
 function myActs(){const p=V.p;if(!p||V.ph!=='night'||V.me<0||!V.seats[V.me].a)return[];const r=p.r;
-  if(r==='don')return['kill','check'];if(r==='maf'||r==='man'||r==='smaf'||r==='sman')return['kill'];if(r==='doc')return['heal'];if((r==='kom'||r==='ser'||r==='gen')&&p.det)return['check'];return[];}
+  if(r==='don')return['kill'];if(r==='maf'||r==='man'||r==='smaf'||r==='sman')return['kill'];if(r==='doc')return['heal'];if((r==='kom'||r==='ser'||r==='gen')&&p.det)return['check'];return[];}
 function curKind(){if(V.ph==='day')return(V.me>=0&&V.seats[V.me].a)?'vote':null;const a=myActs();if(!a.length)return null;return a.includes(mode)?mode:a[0];}
 function canTarget(j,k){const p=V.p,s=V.seats[j];if(!k||!s||!s.a)return false;const tm=(p&&p.tm)||[];
   if(k==='vote')return j!==V.me;

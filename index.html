@@ -354,11 +354,11 @@ const ROLES={
   man:{n:'Маньяк',s:'маньяк',team:'x',img:'man',d:'Играешь сам за себя. Каждую ночь выбираешь жертву. Побеждаешь, если останешься один на один.'},
   kom:{n:'Комиссар',s:'комиссар',team:'t',img:'kom',d:'Каждую ночь приходишь к одному игроку и узнаёшь, кто он: мафия, маньяк или мирный. Того, к кому ты пришёл, этой ночью убить нельзя.'},
   ser:{n:'Сержант',s:'сержант',team:'t',img:'ser',d:'Ты знаешь комиссара и видишь все его проверки. Если комиссар погибнет, ты займёшь его место.'},
-  doc:{n:'Врач',s:'врач',team:'t',img:'doc',d:'Каждую ночь лечишь одного игрока: этой ночью его убить нельзя. Одного и того же две ночи подряд лечить нельзя.'},
+  doc:{n:'Врач',s:'врач',team:'t',img:'doc',d:'Каждую ночь лечишь одного игрока: этой ночью его убить нельзя. Себя лечить нельзя, а одного и того же можно сколько угодно раз.'},
   son:{n:'Сын врача',s:'сын врача',team:'t',img:'son',d:'Пока ты мирный житель. Если ночью к тебе придёт маньяк, станешь маньяком; придёт мафия — станешь мафиози; придёт комиссар — станешь генералом.'},
   smaf:{n:'Сын врача — мафиози',s:'сын врача → мафиози',team:'m',img:'sonMaf',d:'Мафия пришла за тобой, но ты перешёл на их сторону. Ночью вместе с семьёй выбираешь жертву.'},
   sman:{n:'Сын врача — маньяк',s:'сын врача → маньяк',team:'x',img:'sonMan',d:'Маньяк пришёл за тобой, но ты стал таким же. Каждую ночь сам выбираешь жертву и играешь за себя.'},
-  gen:{n:'Генерал',s:'сын врача → генерал',team:'t',img:'gen',d:'Комиссар пришёл к тебе, и ты стал генералом. Каждую ночь можешь сам проверить одного игрока и узнать, кто он.'},
+  gen:{n:'Генерал',s:'сын врача → генерал',team:'t',img:'gen',d:'Комиссар пришёл к тебе, и ты стал генералом. Каждую ночь можешь сам проверить одного игрока и узнать, кто он. Ты знаешь комиссара и сержанта.'},
   cit:{n:'Мирный житель',s:'мирный',team:'t',img:'cit',d:'Ночью спишь. Днём ищи мафию и маньяка и голосуй против них.'}
 };
 const BOT_NAMES=['Арам','Ани','Давид','Нарек','Гаяне','Тигран','Лилит','Карен','Мариам','Ашот','Сона','Гор','Ануш','Левон','Нина','Самвел','Ева','Артур'];
@@ -434,7 +434,7 @@ function doAct(i,k,q,t){const S=H.seats;if(q!==H.q||!S[i]||!S[i].alive)return;t=
   else if(k==='kill'&&r==='man'&&t!==i)N.mk=t;
   else if(k==='kill'&&r==='sman'&&t!==i)N.sk=t;
   else if(k==='check'&&r==='gen'&&t!==i&&!(t in H.gk))N.gk=t;
-  else if(k==='heal'&&r==='doc'&&t!==H.lastHeal)N.heal=t;
+  else if(k==='heal'&&r==='doc'&&t!==i)N.heal=t;
   else if(k==='check'&&det()===i&&t!==i&&!(t in H.ck))N.ck=t;
   else return;HK.change();}
 
@@ -506,7 +506,7 @@ function needs(i){const S=H.seats,N=H.night,r=S[i].role;if(!S[i].alive||(!S[i].b
   if(team(i)==='m')return N.mv[i]==null&&mafT()&&!(dn>=0&&N.mv[dn]!=null);
   if(r==='man')return N.mk==null&&anyT();if(r==='sman')return N.sk==null&&anyT();
   if(r==='gen')return N.gk==null&&has(j=>j!==i&&!(j in H.gk));
-  if(r==='doc')return N.heal==null&&has(j=>j!==H.lastHeal);
+  if(r==='doc')return N.heal==null&&anyT();
   if(det()===i){const pr=S.findIndex(x=>x.role===(r==='kom'?'ser':'kom'));return N.ck==null&&has(j=>j!==i&&j!==pr&&!(j in H.ck));}
   return false;}
 function hTick(){if(!H||!H.seats.length||H.ph==='lobby'||H.ph==='end')return;const now=Date.now();
@@ -561,7 +561,7 @@ function runPlan(p){const S=H.seats,i=p.seat,s=S[i];if(!s.alive)return;const al=
       if(t!=null){doAct(i,'kill',H.q,t);if(Math.random()<.5)say(i,`Предлагаю ${S[t].name}.`,'maf');}
 }
     if(r==='man'||r==='sman')doAct(i,'kill',H.q,(cl!=null&&cl!==i&&S[cl].alive&&Math.random()<.5)?cl:pick(al));
-    if(r==='doc'){const c=alive().filter(j=>j!==H.lastHeal);if(c.length)doAct(i,'heal',H.q,(cl!=null&&S[cl].alive&&cl!==H.lastHeal&&Math.random()<.6)?cl:pick(c));}
+    if(r==='doc'){const c=alive().filter(j=>j!==i);if(c.length)doAct(i,'heal',H.q,(cl!=null&&cl!==i&&S[cl].alive&&Math.random()<.6)?cl:pick(c));}
     if(r==='gen'){const c=al.filter(j=>!(j in H.gk));if(c.length)doAct(i,'check',H.q,Math.random()<.5?bestOf(c):pick(c));}
     if(det()===i){const partner=S.findIndex(x=>x.role===(r==='kom'?'ser':'kom'));const c=al.filter(j=>!(j in H.ck)&&j!==partner);if(c.length)doAct(i,'check',H.q,Math.random()<.5?bestOf(c):pick(c));}
   }else if(p.kind==='talk'){const X=bestOf(al),R=pick(al);
@@ -604,8 +604,8 @@ function viewFor(tk){const i=H.seats.length?seatOf(tk):-1;
     if(r==='don'){p.dk={...H.dk};if(night)p.pc=N.dk;}
     if(r==='man'&&night)p.pk=N.mk;
     if(r==='sman'&&night)p.pk=N.sk;
-    if(r==='gen'){p.ck={...H.gk};p.kom=-1;p.ser=-1;p.det=1;if(night)p.pc=N.gk;}
-    if(r==='kom'||r==='ser'){p.ck={...H.ck};p.kom=H.seats.findIndex(x=>x.role==='kom');p.ser=H.seats.findIndex(x=>x.role==='ser');p.up=H.promoted?1:0;p.det=det()===i?1:0;if(night&&p.det)p.pc=N.ck;}
+    if(r==='gen'){p.ck={...H.gk};p.kom=H.seats.findIndex(x=>x.role==='kom');p.ser=H.seats.findIndex(x=>x.role==='ser');p.gen=i;p.det=1;if(night)p.pc=N.gk;}
+    if(r==='kom'||r==='ser'){p.ck={...H.ck};p.kom=H.seats.findIndex(x=>x.role==='kom');p.ser=H.seats.findIndex(x=>x.role==='ser');p.gen=H.seats.findIndex(x=>x.role==='gen');p.up=H.promoted?1:0;p.det=det()===i?1:0;if(night&&p.det)p.pc=N.ck;}
     if(r==='doc'){p.lh=H.lastHeal;if(night)p.ph=N.heal;}
     if(H.ph==='day')p.v=H.votes[i];
     if(H.ph==='trial')p.vd=H.verd[i]===0||H.verd[i]===1?H.verd[i]:-1;
@@ -919,7 +919,7 @@ const EVC={
   mafFail:p=>({img:IMG.mafFail,kicker:'Сорвалось',title:'Жертва выжила',body:'Этой ночью к вашей цели пришёл врач или комиссар. Семья осталась ни с чем.'}),
   becameMaf:p=>({img:IMG.sonMaf,kicker:'Ночь всё изменила',title:'Ты теперь мафиози',body:'Мафия пришла за тобой, но вместо смерти ты перешёл на их сторону. Теперь ты в семье: ночью выбирайте жертву вместе.'}),
   becameMan:p=>({img:IMG.sonMan,kicker:'Ночь всё изменила',title:'Ты теперь маньяк',body:'Маньяк пришёл за тобой, но ты стал таким же. Теперь каждую ночь ты сам выбираешь жертву и играешь за себя.'}),
-  becameGen:p=>({img:IMG.gen,kicker:'Ночь всё изменила',title:'Ты теперь генерал',body:'Ночью к тебе пришёл комиссар, и ты стал генералом. Каждую ночь можешь сам проверить одного игрока и узнать, кто он.'}),
+  becameGen:p=>({img:IMG.gen,kicker:'Ночь всё изменила',title:'Ты теперь генерал',body:'Ночью к тебе пришёл комиссар, и ты стал генералом. Теперь ты знаешь комиссара и сержанта, а каждую ночь можешь сам проверить одного игрока.'}),
   mafGotSon:(p,e)=>({img:IMG.sonMaf,kicker:'Пополнение в семье',title:'Сын врача теперь с вами',body:`${V.seats[e.s]?V.seats[e.s].n:'Ваша цель'} оказался сыном врача и перешёл на вашу сторону.`}),
   manGotSon:(p,e)=>({img:IMG.sonMan,kicker:'Ночь прошла странно',title:'Появился второй маньяк',body:`${V.seats[e.s]?V.seats[e.s].n:'Твоя жертва'} оказался сыном врача и стал маньяком. Теперь он охотится сам по себе.`}),
   komGotGen:(p,e)=>({img:IMG.gen,kicker:'Новый союзник',title:'Сын врача стал генералом',body:`${V.seats[e.s]?V.seats[e.s].n:'Проверенный игрок'} оказался сыном врача и стал генералом. Теперь он тоже проверяет игроков.`}),
@@ -1002,8 +1002,8 @@ function curKind(){if(V.ph==='day')return(V.me>=0&&V.seats[V.me].a)?'vote':null;
 function canTarget(j,k){const p=V.p,s=V.seats[j];if(!k||!s||!s.a)return false;const tm=(p&&p.tm)||[];
   if(k==='vote')return j!==V.me;
   if(k==='kill')return (p.r==='man'||p.r==='sman')?j!==V.me:!tm.includes(j);
-  if(k==='heal')return j!==p.lh;
-  if(k==='check'){if(p.r==='don')return!tm.includes(j)&&!(j in (p.dk||{}));return j!==V.me&&j!==p.kom&&j!==p.ser&&!(j in (p.ck||{}));}
+  if(k==='heal')return j!==V.me;
+  if(k==='check'){if(p.r==='don')return!tm.includes(j)&&!(j in (p.dk||{}));return j!==V.me&&j!==p.kom&&j!==p.ser&&j!==p.gen&&!(j in (p.ck||{}));}
   return false;}
 function curPick(k){const p=V.p;if(!p)return-1;const v=k==='kill'?p.pk:k==='check'?p.pc:k==='heal'?p.ph:k==='vote'?p.v:null;return v==null?-1:v;}
 const GUN='<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M2 8.5h14.6l.8-1H21V11h-2.2l-.6.9h-3.6l-1.3 2.8a1.6 1.6 0 0 1-1.4.9H9.6L8.1 20H4.2l1.9-6.1H3a1 1 0 0 1-1-1z"/></svg>';
@@ -1054,19 +1054,19 @@ function renderGame(){const p=V.p,me=V.me>=0?V.seats[V.me]:null,alive=me&&me.a,i
   // players on the right, one per row
   const vc={};if(V.vt)V.vt.forEach((t,v)=>{if(t>=0)vc[t]=(vc[t]||0)+1;});
   const mafT={};if(p&&p.mv)for(const a in p.mv)mafT[p.mv[a]]=(mafT[p.mv[a]]||0)+1;
-  const tm=(p&&p.tm)||[],cop=p&&(p.r==='kom'||p.r==='ser');
+  const tm=(p&&p.tm)||[],cop=p&&(p.r==='kom'||p.r==='ser'||p.r==='gen');
   const specH=(V.spec&&V.spec.length)?`<div class="specbox"><small>Ждут следующей партии</small>${V.spec.map(n=>`<span>${esc(n)}</span>`).join('')}</div>`:'';
   setHTML('#plist',specH+V.seats.map((s,j)=>{const ic=[],meta=[];
     if(p){
       if(tm.includes(j)){const don=p.tmr&&p.tmr[j]==='дон';ic.push(icon(GUN,don?'var(--lamp)':'var(--blood)',don?'Дон':'Мафиози'));}
-      if(cop&&(j===p.kom||j===p.ser))ic.push(icon(BADGE,'var(--glow)',j===p.kom?'Комиссар':'Сержант'));
+      if(cop&&j>=0&&(j===p.kom||j===p.ser||j===p.gen))ic.push(icon(BADGE,'var(--glow)',j===p.kom?'Комиссар':j===p.ser?'Сержант':'Генерал'));
       if(p.ck&&j in p.ck){const c=p.ck[j];ic.push(c==='m'?icon(GUN,'var(--blood)','Проверка: мафия'):c==='x'?icon(KNIFE,'var(--blood)','Проверка: маньяк'):icon(CHECK,'var(--ok)','Проверка: мирный'));}
       if(p.dk&&p.dk[j])ic.push(icon(BADGE,'var(--blood)','Это комиссар'));}
     if(vc[j])ic.push(`<span class="badge" title="Голосов против">${vc[j]}</span>`);
     if(j===V.me)meta.push('ты');
     if(s.r)meta.push((s.a?'':'† ')+(s.r==='ser'&&V.pr?'сержант → комиссар':ROLES[s.r].s));
     else if(p&&tm.includes(j)&&j!==V.me)meta.push(p.tmr[j]);
-    else if(cop&&j!==V.me&&(j===p.kom||j===p.ser))meta.push(j===p.kom?'комиссар':'сержант');
+    else if(cop&&j!==V.me&&(j===p.kom||j===p.ser||j===p.gen))meta.push(j===p.kom?'комиссар':j===p.ser?'сержант':'генерал');
     if(s.b)meta.push('бот');else if(!s.on)meta.push('нет связи');
     if(V.vt&&V.vt[j]>=0)meta.push('голос → '+(V.vt[j]+1));
     if(V.ph==='night'&&mafT[j])meta.push(`<span class="bad">цель ×${mafT[j]}</span>`);
